@@ -1,0 +1,63 @@
+version: '3.9'
+services:
+
+#php Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: korede8.1:php-fpm
+    container_name: app
+    restart: unless-stopped
+    tty: true 
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www/html/
+    volumes:
+      - ./:/var/www/html
+      - ./php/laravel.ini:/usr/local/etc/php/conf.d/laravel.ini
+
+  # Nginx service
+  webserevr:
+    image: nginx:apline 
+    container_name: webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./:/var/www/html
+      - ./nginx/confi.d/:/etc/nginx/conf.d
+    networks:
+      - app-network
+
+
+  #MySQL service
+  db:
+    image: mysql:8.0.32
+    container_name: db 
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-secret}'
+      MYSQL_DB: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:-secret}'
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - app-network
+# Docker Networks
+networks:
+  app-network:
+    driver: bridge 
+
+# volumes
+volumes:
+  dbdata:
+    driver: local
